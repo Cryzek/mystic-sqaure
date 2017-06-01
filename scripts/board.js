@@ -50,7 +50,14 @@ function Board() {
 	var dimension;
 
 	/* Width and height of the board. */
-	var boardWidth, boardHeight;
+	var boardLength, tileLength;
+
+	var $board;
+
+	var $tiles;
+
+	/* Stores the translation of the tiles. */
+	var translationMatrix;
 
 	/* Stores the final state.i.e answer. (0 denotes the blank entry.) */
 	var FINAL;
@@ -88,8 +95,8 @@ function Board() {
 		It can have the following options - 
 		+ size - dimension.
 		+ difficulty level - EASY, MEDIUM, HARD.
-		+ boardHeight
-		+ boardWidth
+		+ boardLength
+		+ tileLength
 		+ el - selector to the element.
 	*/
 
@@ -124,11 +131,60 @@ function Board() {
 
 		blankPosition = getBlankPosition(currentState, dimension);
 		numberOfMoves = 0;
-
 		startTime = pauseTime = Date.now();
 		duration = 0;
 
+		translationMatrix = create2dArray(dimension);
+
+		initFrontEnd(options.el);
+
 		initEvents();
+	}
+
+	function initFrontEnd(board) {
+		tileLength = 100;
+
+		if(!board) {
+			$board = $(".board");
+			if(!$board)
+				throw new Error("There is no board element.");
+		}
+
+		translationMatrix = buildTranslationTable(dimension);
+		$tiles = create2dArray(dimension);
+		window.$tiles = $tiles;
+		// Add dimension*dimension-1 number of tiles.
+		for(var i = 0;i < dimension;i++) {
+			for(var j = 0;j < dimension;j++) {
+				var $tile = $("<div class='tile'>");
+				if(currentState[i][j] != 0) {
+					$tile.text(currentState[i][j]);
+				}
+				else {
+					$tile.addClass("blank-entry");
+				}
+				$tile.css({
+					"top": translationMatrix[i][j].first + "px",
+					"left": translationMatrix[i][j].second + "px",
+				});
+				$board.append($tile);
+				$tiles[i][j] = $tile;
+			}
+		}
+	}
+
+	function buildTranslationTable(dimension) {
+		var arr = create2dArray(dimension);
+		for(var i = 0;i < dimension;i++) {
+			for(var j = 0;j < dimension;j++) {
+				arr[i][j] = Pair(tileLength*i, tileLength*j );
+			}
+		}
+		return arr;	
+	}
+
+	function initEvents() {
+		window.addEventListener("keydown", checkMove, false);
 	}
 
 	/* 
@@ -138,6 +194,19 @@ function Board() {
 	}
 
 	function undo() {
+		if(history.empty()) {
+			return;
+		}
+		var newpos = history.top();
+		history.pop();
+		currentState = generateState(currentState, blankPosition, newpos, dimension);
+		blankPosition = newpos.copy();
+		if(dev) {
+			logState(currentState, dimension);
+			console.log(newpos.toString());
+		}
+		renderMove(blankPosition, newpos);
+		numberOfMoves++;
 	}
 
 	function pause() {
@@ -169,10 +238,30 @@ function Board() {
 		Private methods ------------------------------------------------------------
 	*/
 	function renderMove(oldpos, newpos) {
+		console.log(oldpos.toString(), newpos.toString());
+		var x1 = oldpos.first, y1 = oldpos.second, x2 = newpos.first, y2 = newpos.second;
+		console.log($tiles[x2][y2]);
+		/* Tile on newpos has to moved to oldpos. */
+		$tiles[x2][y2].animate({
+			"top": translationMatrix[x1][y1].first + "px",
+			"left": translationMatrix[x1][y1].second + "px",
+		});
+
+		/* Blank entry at oldpos is moved to newpos. */
+		$tiles[x1][y1].animate({
+			"top": translationMatrix[x2][y2].first + "px",
+			"left": translationMatrix[x2][y2].second + "px",
+		});
+
+		/* Dirty code. */
+		var t = $tiles[x1][y1];
+		$tiles[x1][y1] = $tiles[x2][y2];
+		$tiles[x2][y2] = t;
 	}
 
-	/* Generates a random state as start state
-		returns the generated state. */
+	/* Generates a random state(not so random right now) as start state
+		returns the generated state.
+		It also saves a path from the random state to the final state. */
 	function generateRandomState(FINAL, dimension, depth) {
 
 		if(!FINAL) {
@@ -205,7 +294,7 @@ function Board() {
 		/* Starting position of blank entry*/
 		var pos = new Pair(dimension-1, dimension-1);
 
-		/* Initialising the queues, visited and parent maps. */
+		/* Initializing the queues, visited and parent maps. */
 		Q.push(Pair( Pair(FINAL, pos), 0));
 		visited.push(FINAL);
 		parent[FINAL] = NULLSTATE;
@@ -410,9 +499,6 @@ function Board() {
 	/* 
 		Events --------------------------------------------------
 	*/
-	function initEvents() {
-		window.addEventListener("keydown", checkMove, false);
-	}
 
 	/* */
 	function checkMove(event) {
@@ -481,15 +567,16 @@ function Board() {
 	/* Remaining operations for completing the move. */
 	function makeMove(oldpos, newpos) {
 		var oldState = create2dCopy(currentState, dimension);
-		history.push(oldState);
+		history.push(oldpos.copy());
 		numberOfMoves++;
 		currentState = generateState(currentState, oldpos, newpos, dimension);
-		blankPosition = newpos;
+		blankPosition = newpos.copy();
 		if(dev) {
 			console.log("Move");
 			logState(currentState, dimension);
 		}
-		renderMove(newpos, oldpos);
+		// oldpos - position of blank entry in $tiles which needs to be updated.
+		renderMove(oldpos, newpos);
 		if( isEqual(currentState, FINAL, dimension) ) {
 			// Won
 			if(dev) {

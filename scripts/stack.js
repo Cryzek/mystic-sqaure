@@ -5,10 +5,10 @@ function Stack() {
 	var head = -1;
 
 	function top() {
-		if(head != -1)
-			return arr[head];
-		else
+		if(empty())
 			throw new Error("Stack is empty");
+		else
+			return arr[head];
 	}
 
 	function push(el) {
