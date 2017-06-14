@@ -1,0 +1,54 @@
+@mixin flex {
+	display: -webkit-box;
+	display: -ms-flexbox;
+	display: flex;
+}
+
+@mixin flexRow {
+	@include flex;
+	-webkit-box-orient: horizontal;
+	/* -webkit-box-direction: normal; */
+	    -ms-flex-direction: row;
+	        flex-direction: row;
+}
+
+@mixin flexCol {
+	@include flex;
+	-webkit-box-orient: vertical;
+	/* -webkit-box-direction: normal; */
+	    -ms-flex-direction: column;
+	        flex-direction: column;
+}
+
+@mixin flexCenterMain {
+	-webkit-box-pack: center;
+	    -ms-flex-pack: center;
+	        justify-content: center;
+}
+
+@mixin flexCenterCross {
+	-webkit-box-align: center;
+	    -ms-flex-align: center;
+	        align-items: center;
+}
+
+.flex-row {
+	@include flexRow;
+}
+
+.flex-col {
+	@include flexCol;
+}
+
+.flex-center-main {
+	@include flexCenterMain;
+}
+
+.flex-center-cross {
+	@include flexCenterCross;
+}
+
+.flex-center-both {
+	@include flexCenterMain;
+	@include flexCenterCross;
+}

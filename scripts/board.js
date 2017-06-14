@@ -32,14 +32,13 @@ if(!(window.Pair))
 
 	What it does not do - 
 	+ No event listeners corresponding to events in the frontend.
-
 */
 function Board() {
 
 	/* Constants*/
 	var DIFFICULTY = {
-		"EASY": 7,
-		"MEDIUM": 9,
+		"EASY": 8,
+		"MEDIUM": 10,
 		"HARD": 11
 	};
 
@@ -191,6 +190,7 @@ function Board() {
 		Public methods --------------------------------------------------
 	*/
 	function playSolution() {
+
 	}
 
 	function undo() {
@@ -308,7 +308,8 @@ function Board() {
 			var upos = u.first.second;
 			var udist = u.second;
 
-			if(u.second == depth){
+			var randomness = Math.random();
+			if(u.second >= depth && randomness > 0.8){
 				START = u.first.first;
 				break;
 			}
@@ -320,6 +321,7 @@ function Board() {
 			// }
 
 			for(var i = 0;i < MOVES;i++ ) {
+
 				var vpos = Pair(upos.first + rowMove[i], upos.second + colMove[i]) ;
 				if( isValid(vpos, dimension) ) {
 					var vState = generateState(uState, upos, vpos, dimension);
@@ -329,7 +331,6 @@ function Board() {
 					// 	console.log(vpos.first, vpos.second);
 					// 	logState(vState, dimension);
 					// }
-
 					if( isNotVisited(vState, visited)) {
 						var v = new Pair( new Pair(vState, vpos), udist + 1);
 						Q.push(v);
@@ -351,7 +352,7 @@ function Board() {
 	/* 
 		Helper Methods for Board Object. ------------------------------------------------------------
 	*/
-	/* Creates a simple 2 dimensional array and returns. */
+	/* Creates a simple 2 dimensional array and returns it. */
 	function create2dArray(n, el) {
 		if(!n) {
 			throw new Error("@param - n is not defined.");

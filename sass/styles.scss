@@ -1,7 +1,45 @@
+/* Variables */
+$bodyColor: #212325;
+$headerColor: #1c1d1f;
+$headerFontColor: white;
+$headerFontSize: 20px;
+$font: "Museo Sans", "Segoe UI Light", "Verdana";
+
+/* Font includes */
+@font-face {
+	src: url("../fonts/MuseoSans_500.otf");
+	font-family: "Museo Sans";
+}
+
 * {
 	box-sizing: border-box;
 	margin: 0;
 	border: 0;	
 }
 
+/* Helper Styles */
+@import "helper";
+
+/* Styles for the document */
+body {
+	width: 100%;
+	height: 100vh;
+	background-color: $bodyColor;
+	font-family: $font;
+}
+
+header {
+	width: 100%;
+	height: 80px;
+	background-color: $headerColor;
+	font-size: $headerFontSize;
+	color: $headerFontColor;
+}
+
+main {
+	width: 100%;
+	height: calc(100vh - 80px);
+}
+
+/* Board specific styles */
 @import "board";

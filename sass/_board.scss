@@ -3,8 +3,7 @@
 	display: block;
 	width: 400px;
 	height: 400px;
-	border: 1px solid;
-	background-color: white;
+	border-radius: 2px;
 
 	.tile {
 		position: absolute;
@@ -16,6 +15,10 @@
 		width: 98px;
 		height: 98px;
 		border: 1px solid grey;
+		border-radius: 2px;
+		font-family: $font;
+		color: white;
+		font-size: 16px;
 	}
 
 	.tile.blank-entry {
