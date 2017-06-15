@@ -7,11 +7,13 @@
 
 	<title>Mystic Square</title>
 
+	<link rel="Shortcut Icon" href="favicon.png">
+
 	<!--Import Google Icon Font-->
 	<link href="http://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 
 	<!-- Styles -->
-	<link rel="stylesylesheet" href="css/materialize.css">
+	<link rel="stylesheet" href="css/materialize.css">
 	<link rel="stylesheet" href="css/styles.css">
 
 	<!-- Scripts -->
@@ -24,12 +26,58 @@
 	<script type="text/javascript" src="scripts/board.js"></script>
 	<script type="text/javascript" src="scripts/main.js"></script>
 </head>
-<body class="flex-col flex-center-cross">
+<body class="flex-col flex-center-cross ">
 	<header class="flex-row flex-center-both">
-		Mystic Square
+		<p>Mystic Square</p>
+		<div class="links flex-row flex-center-both">
+			<a href="https://github.com/Cryzek/mystic-sqaure" class="flex-row flex-center-both"><img src="images/github.png"></a>
+			<span class="flex-row flex-center-both instructions"><img src="images/question-mark.png"></span>
+		</div>
 	</header>
 	<main class="flex-row flex-center-both">
-		<div class="board">
+		<div class="board-container flex-col flex-center-both ">
+			<div class="board">
+				<div class="loader"></div>
+			</div>
+		</div>
+		<!-- Board controls contains 
+			+ the details of an ongoing game such no. of moves and duration,
+			+ controls to start , pause, resume, stop and auto solve the game,
+			+ controls to select game difficulty.  -->
+		<div class="board-controls flex-col flex-center-main">
+			<div class="game-details flex-row flex-center-cross">
+				<section class="time flex-col flex-center-m">
+					<p class="section-title">Time</p>
+					<p class="timer">00:00</p>
+				</section>
+				<section class="moves">
+					<p class="section-title">Number of Moves</p>
+					<p class="move-count">0</p>
+				</section>
+			</div>
+			<section class="game-controls flex-col flex-center-cross">
+				<p class="section-title">Game Controls</p>
+				<div class="wrapper modes flex-row flex-center-cross">
+					<button class="start btn">Start Time</button>
+					<button class="stop btn">Stop Time</button>
+					<button class="solve btn hide">solve</button>
+					<button class="undo btn">Undo</button>
+				</div>
+			</section>
+			<section class="difficulty-controls flex-col flex-center-main">
+				<p class="section-title">Game Mode</p>
+				<div class="wrapper flex-row">
+					<div class="easy active difficulty" data-difficulty="easy">
+						Easy
+					</div>
+					<div class="medium difficulty" data-difficulty="medium">
+						Medium
+					</div>
+					<div class="hard difficulty" data-difficulty="hard">
+						Hard
+					</div>
+				</div>
+			</section>
 		</div>
 	</main>
 </body>

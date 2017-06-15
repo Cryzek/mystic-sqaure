@@ -1,8 +1,9 @@
-/* Variables */
+/* Variables*/
 $bodyColor: #212325;
 $headerColor: #1c1d1f;
+$headerHeight: 84px;
 $headerFontColor: white;
-$headerFontSize: 20px;
+$headerFontSize: 24px;
 $font: "Museo Sans", "Segoe UI Light", "Verdana";
 
 /* Font includes */
@@ -12,7 +13,8 @@ $font: "Museo Sans", "Segoe UI Light", "Verdana";
 }
 
 * {
-	box-sizing: border-box;
+	-webkit-box-sizing: border-box;
+	        box-sizing: border-box;
 	margin: 0;
 	border: 0;	
 }
@@ -24,21 +26,246 @@ $font: "Museo Sans", "Segoe UI Light", "Verdana";
 body {
 	width: 100%;
 	height: 100vh;
+	color: white;
 	background-color: $bodyColor;
 	font-family: $font;
+	letter-spacing: 2px;	
 }
 
 header {
+	position: relative;
 	width: 100%;
-	height: 80px;
+	height: $headerHeight;
 	background-color: $headerColor;
 	font-size: $headerFontSize;
 	color: $headerFontColor;
+	letter-spacing: 5px;
+	text-transform: uppercase;
+
+	.links {
+		position: absolute;
+		top: 0;
+		right: 0;
+		height: $headerHeight;
+
+		a, span {
+			// width: $headerHeight;
+			height: $headerHeight;
+			cursor: pointer;
+			margin: 0 12px;
+	
+			img {
+				width: auto;
+				height: ($headerHeight/2.2);
+			}
+		}
+
+	}
 }
 
 main {
 	width: 100%;
-	height: calc(100vh - 80px);
+	height: calc(100vh - #{$headerHeight});
+}
+
+.board-container {
+	width: 50%;
+	height: 100%;
+	min-height: 450px;
+}
+
+.board-controls {
+	width: 50%;
+	height: 100%;
+	// padding-left: 5vw;
+	
+	> * {
+		width: 100%;
+		margin-bottom: 5vh;
+	}
+
+	section {
+
+		$sectionTitleColor: #a6a6a7;
+		> .section-title {
+			width: 100%;
+			color: $sectionTitleColor;
+			font-size: 12px;
+			letter-spacing: 3px;
+			text-transform: uppercase;
+			margin-bottom: 8px;
+			align-self: flex-start;
+		}
+	}
+
+	.game-details {
+		section {
+			$detailColor: #3dba78;
+			margin-right: 5vw;
+			
+			p.section-title {
+				margin-bottom: 0;
+			}
+
+			p:not(.section-title) {
+				color: $detailColor;
+				font-size: 48px;
+			}
+		}
+
+	}
+
+	.game-controls {
+		$backgroundColor: rgba(88, 153, 190, 0.1);
+		$backgroundHoverColor: rgba(88, 153, 190, 0.3);
+		$startColor: rgba(88, 153, 190, 1);
+		$stopColor: rgba(88, 153, 190, 1);
+		$solveColor: rgba(88, 153, 190, 1);
+		$undoColor: rgba(88, 153, 190, 1);
+
+		.wrapper {
+			width: 100%;
+		}
+
+		button {
+			margin: 0 8px;
+			font-size: 12px;
+			letter-spacing: 3px;
+			border: 1px solid;
+			border-radius: 4px;
+			transition: background-color 0.25s, border-color 0.25s
+		}
+
+		button:hover {
+			background-color: $backgroundHoverColor;
+		}
+
+		/* Each button is actually supposed to have different colours. */
+		.start {
+			margin-left: 0;
+			background-color: $backgroundColor;
+			color: $startColor;
+			border-color: $startColor;
+		}
+
+		.stop {
+			background-color: $backgroundColor;
+			color: $stopColor;
+			border-color: $stopColor;
+		}
+
+		.solve {
+			background-color: $backgroundColor;
+			color: $solveColor;
+			border-bottom-color: $solveColor;
+		}
+
+		.undo {
+			background-color: $backgroundColor;
+			color: $undoColor;
+			border-bottom-color: $undoColor;
+		}
+	}
+
+	.difficulty-controls {
+		$height: 15vh;
+		$difficultyColor: #34363a;
+		$easyColor: #e0d955;
+		$mediumColor: #549fc9;
+		$hardColor: #d34949;
+
+		width: 100%;
+		height: auto;
+		justify-content: space-around;
+
+		.wrapper {
+			height: $height;
+		}
+
+		.difficulty {
+			@include flexRow;
+			@include flexCenterMain;
+			@include flexCenterCross;
+			width: calc(#{$height} - 8px);
+			height: calc(#{$height} - 8px);
+			background-color: $difficultyColor;
+			border-radius: 8px;
+			filter: blur(1px);
+			margin: 0 8px;
+			cursor: pointer;
+			border: 1px solid #3e4146;
+			text-transform: uppercase;
+			font-size: 12px;
+			letter-spacing: 2px;
+			transition: filter 0.25s, color 0.25s, border 0.25s;
+		}
+
+		.difficulty.active {
+			filter: blur(0px);
+		}
+
+		.difficulty.easy.active {
+			color: $easyColor;
+			border: 1px solid $easyColor;
+			margin-left: 0;
+		}
+
+		.difficulty.medium.active {
+			color: $mediumColor;
+			border: 1px solid $mediumColor;
+		}
+
+		.difficulty.hard.active {
+			color: $hardColor;
+			border: 1px solid $hardColor;
+		}
+
+		.difficulty:hover {
+			filter: blur(0)
+		}
+
+		.difficulty.easy:hover {
+			color: $easyColor;
+			border: 1px solid $easyColor;
+		}
+
+		.difficulty.medium:hover {
+			color: $mediumColor;
+			border: 1px solid $mediumColor;
+		}
+
+		.difficulty.hard:hover {
+			color: $hardColor;
+			border: 1px solid $hardColor;
+		}
+	}
+}
+
+@media (max-width: 900px) {
+	main {
+		flex-wrap: wrap;
+	}
+
+	.board-container, .board-controls {
+		width: 100vw;
+	}
+}
+
+@mixin toastContainerStyles {
+	top: initial;
+	bottom: 10%;
+	left: initial;
+	right: initial;
+}
+
+@media only screen and (min-width: 993px) {
+	#toast-container {
+		@include toastContainerStyles;
+	}	
+}
+
+#toast-container {
+	@include toastContainerStyles;
 }
 
 /* Board specific styles */

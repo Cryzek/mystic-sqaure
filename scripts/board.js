@@ -1,6 +1,6 @@
 "use strict";
 
-var dev = 1;
+var dev = 0;
 
 /* A little bit of error reporting. */
 if(!(window.Stack))
@@ -73,8 +73,11 @@ function Board() {
 	/* The start time, in between pause time end time and duration of game. */
 	var startTime, pauseTime, duration;
 
+	// holds reference to setInterval. This sends updates to the front end for time.
+	var gameInterval;
+
 	/* Denotes whether the game is over or not. */
-	var gameOver = false;
+	var gameOver = false, gamePaused = true;
 
 	/* Stores the moves played by the user. Works as a stack. */
 	var history = Stack();
@@ -90,7 +93,7 @@ function Board() {
 		"DOWN": 40
 	};
 
-	/* Well, initializes the board.
+	/* Well, this initializes the board.
 		It can have the following options - 
 		+ size - dimension.
 		+ difficulty level - EASY, MEDIUM, HARD.
@@ -101,9 +104,10 @@ function Board() {
 
 	function initBoard(options) {
 		/* set initial values; */
-		if(!options.dimension)
+		/*if(!options.dimension)
 			options.dimension = 4;
-		dimension = options.dimension;
+		dimension = options.dimension;*/
+		dimension = 4;
 
 		if(!options.difficulty) {
 			options.difficulty = DIFFICULTY["MEDIUM"];
@@ -130,8 +134,7 @@ function Board() {
 
 		blankPosition = getBlankPosition(currentState, dimension);
 		numberOfMoves = 0;
-		startTime = pauseTime = Date.now();
-		duration = 0;
+		gameOver = true;
 
 		translationMatrix = create2dArray(dimension);
 
@@ -141,13 +144,15 @@ function Board() {
 	}
 
 	function initFrontEnd(board) {
-		tileLength = 100;
-
+		$board = board;
 		if(!board) {
 			$board = $(".board");
-			if(!$board)
+			if(!$board.length)
 				throw new Error("There is no board element.");
 		}
+
+		tileLength = 100;
+		boardLength = $board.attr("data-width");
 
 		translationMatrix = buildTranslationTable(dimension);
 		$tiles = create2dArray(dimension);
@@ -157,14 +162,14 @@ function Board() {
 			for(var j = 0;j < dimension;j++) {
 				var $tile = $("<div class='tile'>");
 				if(currentState[i][j] != 0) {
-					$tile.text(currentState[i][j]);
+					$tile.append($("<p>").text(currentState[i][j]));
 				}
 				else {
 					$tile.addClass("blank-entry");
 				}
 				$tile.css({
-					"top": translationMatrix[i][j].first + "px",
-					"left": translationMatrix[i][j].second + "px",
+					"top": translationMatrix[i][j].first,
+					"left": translationMatrix[i][j].second,
 				});
 				$board.append($tile);
 				$tiles[i][j] = $tile;
@@ -174,9 +179,11 @@ function Board() {
 
 	function buildTranslationTable(dimension) {
 		var arr = create2dArray(dimension);
+		var inc = 100/dimension;
 		for(var i = 0;i < dimension;i++) {
 			for(var j = 0;j < dimension;j++) {
-				arr[i][j] = Pair(tileLength*i, tileLength*j );
+				var x = inc*i + "%", y = inc*j + "%";
+				arr[i][j] = Pair(x, y);
 			}
 		}
 		return arr;	
@@ -190,40 +197,72 @@ function Board() {
 		Public methods --------------------------------------------------
 	*/
 	function playSolution() {
+	}
 
+	function start() {
+		startTime = pauseTime = Date.now();
+		duration = 0;
+		gamePaused = false;
+		gameOver = false;
+		gameInterval = window.setInterval(startGameInterval, 1000);
+	}
+
+	function startGameInterval() {
+		var sec, min, tmp, diff;
+		if(gamePaused === true) {
+			diff = duration;
+		}
+		else {
+			tmp = Date.now();	
+			diff = ((tmp - startTime)/1000 | 0);
+			diff += duration;
+		}
+		min = (diff/60) | 0;
+		min = (min < 10) ? "0" + min: min;
+		sec = (diff%60) | 0;
+		sec = (sec < 10) ? "0" + sec: sec;
+		$board.trigger("update-timer", [sec, min]);
 	}
 
 	function undo() {
 		if(history.empty()) {
-			return;
+			return -1;
 		}
+		if(gamePaused) return;
+
 		var newpos = history.top();
 		history.pop();
-		currentState = generateState(currentState, blankPosition, newpos, dimension);
-		blankPosition = newpos.copy();
-		if(dev) {
-			logState(currentState, dimension);
-			console.log(newpos.toString());
-		}
-		renderMove(blankPosition, newpos);
-		numberOfMoves++;
+		// currentState = generateState(currentState, blankPosition, newpos, dimension);
+		// // blankPosition = newpos.copy();
+		// if(dev) {
+		// 	logState(currentState, dimension);
+		// 	console.log(newpos.toString());
+		// }
+		// numberOfMoves++;
+		makeMove(blankPosition, newpos);
+		// Hack for now
+		history.pop(); 
+		// renderMove(blankPosition, newpos);
 	}
 
 	function pause() {
+		gamePaused = true;
 		pauseTime = Date.now();
-		duration = duration + (pauseTime - startTime);
+		duration = duration + ((pauseTime - startTime))/1000;
 		// pause the timer.
 	}
 
 	function resume() {
 		// resume the timer.
-		startTime = pauseTime;
+		gamePaused = false;
+		startTime = Date.now();
 	}
 
 	function stop() {
 		pauseTime = Date.now();
-		duration += pauseTime - startTime;
+		duration += (pauseTime - startTime)/1000;
 		startTime = pauseTime = 0;
+		destroy();
 	}
 
 	function getTimePlayed() {
@@ -238,25 +277,28 @@ function Board() {
 		Private methods ------------------------------------------------------------
 	*/
 	function renderMove(oldpos, newpos) {
-		console.log(oldpos.toString(), newpos.toString());
+		if(dev)
+			console.log(oldpos.toString(), newpos.toString());
 		var x1 = oldpos.first, y1 = oldpos.second, x2 = newpos.first, y2 = newpos.second;
-		console.log($tiles[x2][y2]);
+		if(dev)
+			console.log($tiles[x2][y2]);
 		/* Tile on newpos has to moved to oldpos. */
 		$tiles[x2][y2].animate({
-			"top": translationMatrix[x1][y1].first + "px",
-			"left": translationMatrix[x1][y1].second + "px",
+			"top": translationMatrix[x1][y1].first,
+			"left": translationMatrix[x1][y1].second,
 		});
 
 		/* Blank entry at oldpos is moved to newpos. */
 		$tiles[x1][y1].animate({
-			"top": translationMatrix[x2][y2].first + "px",
-			"left": translationMatrix[x2][y2].second + "px",
+			"top": translationMatrix[x2][y2].first,
+			"left": translationMatrix[x2][y2].second,
 		});
 
 		/* Dirty code. */
 		var t = $tiles[x1][y1];
 		$tiles[x1][y1] = $tiles[x2][y2];
 		$tiles[x2][y2] = t;
+		$board.trigger("make-move", numberOfMoves);
 	}
 
 	/* Generates a random state(not so random right now) as start state
@@ -519,7 +561,7 @@ function Board() {
 
 	/* Operations for left move. */
 	function moveLeft() {
-		if(gameOver) return;
+		if(gameOver || gamePaused) return;
 		var newpos = Pair(blankPosition.first, blankPosition.second - 1);
 		if(isValid(newpos, dimension)) {
 			makeMove(blankPosition, newpos);
@@ -531,7 +573,7 @@ function Board() {
 
 	/* Operations for up move. */
 	function moveUp() {
-		if(gameOver) return;
+		if(gameOver || gamePaused) return;
 		var newpos = Pair(blankPosition.first - 1, blankPosition.second);
 		if(isValid(newpos, dimension)) {
 			makeMove(blankPosition, newpos);
@@ -543,7 +585,7 @@ function Board() {
 
 	/* Operations for right move. */
 	function moveRight() {
-		if(gameOver) return;
+		if(gameOver || gamePaused) return;
 		var newpos = Pair(blankPosition.first, blankPosition.second + 1);
 		if(isValid(newpos, dimension)) {
 			makeMove(blankPosition, newpos);
@@ -555,7 +597,7 @@ function Board() {
 	
 	/* Operations for down move. */
 	function moveDown() {
-		if(gameOver) return;
+		if(gameOver || gamePaused) return;
 		var newpos = Pair(blankPosition.first + 1, blankPosition.second);
 		if(isValid(newpos, dimension)) {
 			makeMove(blankPosition, newpos);
@@ -582,11 +624,19 @@ function Board() {
 			// Won
 			if(dev) {
 				console.log("No of Moves " + numberOfMoves);
-				stop();
 				console.log(duration);
-				gameOver = true;
 			}
+			stop();
+			$board.trigger("game-over");
 		}
+	}
+
+	function destroy() {
+		// solution = null;
+		// history = null;
+		gameOver = true;
+		gamePaused = true;
+		window.clearInterval(gameInterval);
 	}
 
 	
@@ -595,6 +645,7 @@ function Board() {
 		init: initBoard,
 		playMove: checkMove,
 		undo: undo,
+		start: start,
 		pause: pause,
 		resume: resume,
 		stop: stop,

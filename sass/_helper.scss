@@ -7,7 +7,7 @@
 @mixin flexRow {
 	@include flex;
 	-webkit-box-orient: horizontal;
-	/* -webkit-box-direction: normal; */
+	-webkit-box-direction: normal;
 	    -ms-flex-direction: row;
 	        flex-direction: row;
 }
@@ -15,7 +15,7 @@
 @mixin flexCol {
 	@include flex;
 	-webkit-box-orient: vertical;
-	/* -webkit-box-direction: normal; */
+	-webkit-box-direction: normal;
 	    -ms-flex-direction: column;
 	        flex-direction: column;
 }
