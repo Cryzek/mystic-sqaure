@@ -3,6 +3,9 @@
 var dev = 0;
 
 /* A little bit of error reporting. */
+if(!window)
+	throw new Error("You're running this in the wrong place.");
+
 if(!(window.Stack))
 	throw new Error("Stack has not been implemented. Include the stack.js file.");
 
@@ -25,35 +28,28 @@ if(!(window.Pair))
 	+ FINAL; + currentState; + blankPosition; + numberOfMoves; + timer; + history; + solution;
 	
 	Helper Methods -
-	+ create2dArray; + create2dCopy; + isEqual; + initFINAL; + getBlankPosition;
-
-	What it does - 
-	+ The function returns an object.
-
-	What it does not do - 
-	+ No event listeners corresponding to events in the frontend.
+	+ create2dArray; + create2dCopy; + isEqual; + initFINAL; + getBlankPosition, +isValid, +isNotVisited;
 */
 function Board() {
 
 	/* Constants*/
 	var DIFFICULTY = {
-		"EASY": 8,
-		"MEDIUM": 10,
-		"HARD": 11
+		"EASY": 4,
+		"MEDIUM": 5,
+		"HARD": 6
 	};
 
 	/*
 		Variables
 	*/
-	/* Dimensions of the grid. Since it's a square , we need only one.*/
-	var dimension;
+	/* Dimensions of the grid are decided based on difficulty. Since it's a square , we need only one. Feels redundant , however the value is needed in event listeners. */
+	var size;
 
 	/* Width and height of the board. */
-	var boardLength, tileLength;
+	var tileLength;
 
-	var $board;
-
-	var $tiles;
+	/* DOM references to puzzle board and its tiles. */
+	var $board, $tiles;
 
 	/* Stores the translation of the tiles. */
 	var translationMatrix;
@@ -85,7 +81,7 @@ function Board() {
 	/* Path to solution. */
 	var solution = Queue();
 
-	/* Move bindings. */
+	/* Move Key bindings. */
 	var MOVE = {
 		"LEFT": 37,
 		"UP": 38,
@@ -95,7 +91,7 @@ function Board() {
 
 	/* Well, this initializes the board.
 		It can have the following options - 
-		+ size - dimension.
+		+ size - dimensions of the board.
 		+ difficulty level - EASY, MEDIUM, HARD.
 		+ boardLength
 		+ tileLength
@@ -104,62 +100,61 @@ function Board() {
 
 	function initBoard(options) {
 		/* set initial values; */
-		/*if(!options.dimension)
-			options.dimension = 4;
-		dimension = options.dimension;*/
-		dimension = 4;
-
+		
 		if(!options.difficulty) {
-			options.difficulty = DIFFICULTY["MEDIUM"];
+			options.difficulty = DIFFICULTY["EASY"];
 		}
 		else {
 			options.difficulty = DIFFICULTY[options.difficulty.toUpperCase()];
 		}
+		size = options.difficulty;
 
 		if(options.MOVE) {
 			MOVE = options.MOVE;
 		}
 
 		// FINAL has the final state i.e winning state
-		FINAL = initFINAL(dimension);
+		FINAL = initFINAL(size);
 
 		if(dev)	{
-			logState(FINAL, dimension);
+			logState(FINAL, size);
 		}
 
-		currentState = generateRandomState(FINAL, dimension, options.difficulty);
+		currentState = generateRandomState(FINAL, size, 5);
 		if(dev) {
-			logState(currentState, dimension);
+			logState(currentState, size);
 		}
 
-		blankPosition = getBlankPosition(currentState, dimension);
+		blankPosition = getBlankPosition(currentState, size);
 		numberOfMoves = 0;
 		gameOver = true;
 
-		translationMatrix = create2dArray(dimension);
+		translationMatrix = create2dArray(size);
 
-		initFrontEnd(options.el);
+		initFrontEnd(options.el, size);
 
 		initEvents();
 	}
 
-	function initFrontEnd(board) {
+	function initFrontEnd(board, size) {
 		$board = board;
 		if(!board) {
 			$board = $(".board");
 			if(!$board.length)
 				throw new Error("There is no board element.");
 		}
+		if(!size) {
+			throw new Error("@param - size is not defined.");
+		}
 
 		tileLength = 100;
-		boardLength = $board.attr("data-width");
 
-		translationMatrix = buildTranslationTable(dimension);
-		$tiles = create2dArray(dimension);
-		window.$tiles = $tiles;
-		// Add dimension*dimension-1 number of tiles.
-		for(var i = 0;i < dimension;i++) {
-			for(var j = 0;j < dimension;j++) {
+		translationMatrix = buildTranslationTable(size);
+		$tiles = create2dArray(size);
+		window.tiles = $tiles;
+		// Add size*size-1 number of tiles.
+		for(var i = 0;i < size;i++) {
+			for(var j = 0;j < size;j++) {
 				var $tile = $("<div class='tile'>");
 				if(currentState[i][j] != 0) {
 					$tile.append($("<p>").text(currentState[i][j]));
@@ -177,11 +172,11 @@ function Board() {
 		}
 	}
 
-	function buildTranslationTable(dimension) {
-		var arr = create2dArray(dimension);
-		var inc = 100/dimension;
-		for(var i = 0;i < dimension;i++) {
-			for(var j = 0;j < dimension;j++) {
+	function buildTranslationTable(size) {
+		var arr = create2dArray(size);
+		var inc = 100/size;
+		for(var i = 0;i < size;i++) {
+			for(var j = 0;j < size;j++) {
 				var x = inc*i + "%", y = inc*j + "%";
 				arr[i][j] = Pair(x, y);
 			}
@@ -191,6 +186,16 @@ function Board() {
 
 	function initEvents() {
 		window.addEventListener("keydown", checkMove, false);
+		$($tiles).each(function() {
+			$(this).each(function() {
+				$(this).on("click", attachClickEvent)
+			});
+		});
+	}
+
+	function attachClickEvent() {
+		var $el = $(this);
+		if($el.hasClass("blank-entry")) return;
 	}
 
 	/* 
@@ -245,15 +250,15 @@ function Board() {
 		// renderMove(blankPosition, newpos);
 	}
 
+	// pause the timer.
 	function pause() {
 		gamePaused = true;
 		pauseTime = Date.now();
 		duration = duration + ((pauseTime - startTime))/1000;
-		// pause the timer.
 	}
 
+	// resume the timer.
 	function resume() {
-		// resume the timer.
 		gamePaused = false;
 		startTime = Date.now();
 	}
@@ -304,20 +309,17 @@ function Board() {
 	/* Generates a random state(not so random right now) as start state
 		returns the generated state.
 		It also saves a path from the random state to the final state. */
-	function generateRandomState(FINAL, dimension, depth) {
+	function generateRandomState(FINAL, size, depth) {
 
 		if(!FINAL) {
 			throw new Error("@param - FINAL is not defined");
 		}
-		if(!depth) {
-			throw new Error("@param - dimension is not defined.");
-		}
-		if(!depth) {
-			throw new Error("@param - depth is not defined. (DIFFICULTY LEVEL)");
+		if(!size) {
+			throw new Error("@param - size is not defined.");
 		}
 
 		var START;
-		var NULLSTATE = create2dArray(dimension, -1);
+		var NULLSTATE = create2dArray(size, -1);
 
 		/* [left, up, right, down] */
 		var MOVES = 4;
@@ -334,7 +336,7 @@ function Board() {
 		var parent = [];
 
 		/* Starting position of blank entry*/
-		var pos = new Pair(dimension-1, dimension-1);
+		var pos = new Pair(size-1, size-1);
 
 		/* Initializing the queues, visited and parent maps. */
 		Q.push(Pair( Pair(FINAL, pos), 0));
@@ -359,21 +361,21 @@ function Board() {
 			// if(dev) {
 			// 	console.log("uState");
 			// 	console.log(upos.first, upos.second);
-			// 	logState(uState, dimension);
+			// 	logState(uState, size);
 			// }
 
 			for(var i = 0;i < MOVES;i++ ) {
 
 				var vpos = Pair(upos.first + rowMove[i], upos.second + colMove[i]) ;
-				if( isValid(vpos, dimension) ) {
-					var vState = generateState(uState, upos, vpos, dimension);
+				if( isValid(vpos, size) ) {
+					var vState = generateState(uState, upos, vpos, size);
 					// if(dev) {
 					// 	console.log("New State");
 					// 	console.log(isNotVisited(vState));
 					// 	console.log(vpos.first, vpos.second);
-					// 	logState(vState, dimension);
+					// 	logState(vState, size);
 					// }
-					if( isNotVisited(vState, visited)) {
+					if( isNotVisited(vState, size, visited)) {
 						var v = new Pair( new Pair(vState, vpos), udist + 1);
 						Q.push(v);
 						visited.push(vState);
@@ -394,7 +396,7 @@ function Board() {
 	/* 
 		Helper Methods for Board Object. ------------------------------------------------------------
 	*/
-	/* Creates a simple 2 dimensional array and returns it. */
+	/* Creates a simple 2 dimensional array and returns it. This is due to the fact that JS does not provide ability to create multidimensional arrays like C,C++ and 2D arrays suffice the need.*/
 	function create2dArray(n, el) {
 		if(!n) {
 			throw new Error("@param - n is not defined.");
@@ -412,7 +414,13 @@ function Board() {
 		return arr;
 	}
 
-	/* Creates a copy of @param - arr. This is needed for the following reason*/
+	/* Creates a copy of @param - arr. This is needed for the following reason - 
+		eg. var a = [1, 2, 4];
+		    var b = a; copies the same array reference of a.
+		    So, b[1] = 6 is the same as a[1]. i.e a===b is true.
+
+		Array.from does not for the 2D array in use.
+	*/
 	function create2dCopy(arr, n) {
 		if(!arr) {
 			throw new Error("@param - arr is not defined.");
@@ -488,17 +496,32 @@ function Board() {
 
 	/* Check's if the pos is within the bounds. */
 	function isValid(pos, n) {
+		if(!pos) {
+			throw new Error("@param - pos is not defined.");
+		}
+		if(!n) {
+			throw new Error("@param - n is not defined.");
+		}
 		if(pos.first < 0 || pos.first >= n || pos.second < 0 || pos.second >= n)
 			return false;
 		return true;
 	}
 
 	/* Check's if state has already not been visited. */
-	function isNotVisited(state, visited) {
+	function isNotVisited(state, n, visited) {
+		if(!state) {
+			throw new Error("@param - state is not defined.");
+		}
+		if(!n) {
+			throw new Error("@param - n is not defined.");
+		}
+		if(!visited) {
+			throw new Error("@param - visited is not defined.");
+		}
 		var i;
 		for(i = 0;i < visited.length ;i++) {
 			var item = visited[i];
-			if(isEqual(item, state, dimension))
+			if(isEqual(item, state, n))
 				return false;
 		}
 		return true;
@@ -506,7 +529,7 @@ function Board() {
 
 	/* Save the solution path in solution variable. */
 	function saveSolution(state, parent, NULLSTATE) {
-		if(isEqual(state, NULLSTATE, dimension)) return;
+		if(isEqual(state, NULLSTATE, size)) return;
 		solution.push(state);
 		saveSolution(parent[state], parent, NULLSTATE);
 	}
@@ -563,7 +586,7 @@ function Board() {
 	function moveLeft() {
 		if(gameOver || gamePaused) return;
 		var newpos = Pair(blankPosition.first, blankPosition.second - 1);
-		if(isValid(newpos, dimension)) {
+		if(isValid(newpos, size)) {
 			makeMove(blankPosition, newpos);
 		}
 		else {
@@ -575,7 +598,7 @@ function Board() {
 	function moveUp() {
 		if(gameOver || gamePaused) return;
 		var newpos = Pair(blankPosition.first - 1, blankPosition.second);
-		if(isValid(newpos, dimension)) {
+		if(isValid(newpos, size)) {
 			makeMove(blankPosition, newpos);
 		}
 		else {
@@ -587,7 +610,7 @@ function Board() {
 	function moveRight() {
 		if(gameOver || gamePaused) return;
 		var newpos = Pair(blankPosition.first, blankPosition.second + 1);
-		if(isValid(newpos, dimension)) {
+		if(isValid(newpos, size)) {
 			makeMove(blankPosition, newpos);
 		}
 		else {
@@ -599,7 +622,7 @@ function Board() {
 	function moveDown() {
 		if(gameOver || gamePaused) return;
 		var newpos = Pair(blankPosition.first + 1, blankPosition.second);
-		if(isValid(newpos, dimension)) {
+		if(isValid(newpos, size)) {
 			makeMove(blankPosition, newpos);
 		}
 		else {
@@ -609,18 +632,18 @@ function Board() {
 
 	/* Remaining operations for completing the move. */
 	function makeMove(oldpos, newpos) {
-		var oldState = create2dCopy(currentState, dimension);
+		var oldState = create2dCopy(currentState, size);
 		history.push(oldpos.copy());
 		numberOfMoves++;
-		currentState = generateState(currentState, oldpos, newpos, dimension);
+		currentState = generateState(currentState, oldpos, newpos, size);
 		blankPosition = newpos.copy();
 		if(dev) {
 			console.log("Move");
-			logState(currentState, dimension);
+			logState(currentState, size);
 		}
 		// oldpos - position of blank entry in $tiles which needs to be updated.
 		renderMove(oldpos, newpos);
-		if( isEqual(currentState, FINAL, dimension) ) {
+		if( isEqual(currentState, FINAL, size) ) {
 			// Won
 			if(dev) {
 				console.log("No of Moves " + numberOfMoves);
@@ -639,7 +662,6 @@ function Board() {
 		window.clearInterval(gameInterval);
 	}
 
-	
 	/* Mystic Square API*/
 	return {
 		init: initBoard,

@@ -5,7 +5,6 @@
 
 	/* Much needed globals*/
 	var opts = {
-		// dimension: 4,
 		difficulty: "EASY",
 		MOVE : {
 			"LEFT": 39,
@@ -111,13 +110,13 @@
 	function start() {
 		if(isGameOver && !isPlaying && playedOnce) {
 			// Restart or start a new game.
-			console.log("here");
 			var difficulty = $(".difficulty.active").attr("data-difficulty").toUpperCase();
 			opts.el.html("");
 			opts.difficulty = difficulty;
 			board.init(opts);
 			$start.text("Pause");
 			board.start();
+			$timer.text("00:00");
 			isGameOver = false;
 			isPlaying = true;
 			return;
