@@ -49,7 +49,7 @@ function Board() {
 	var tileLength;
 
 	/* DOM references to puzzle board and its tiles. */
-	var $board, $tiles;
+	var $board, tiles;
 
 	/* Stores the translation of the tiles. */
 	var translationMatrix;
@@ -101,13 +101,12 @@ function Board() {
 	function initBoard(options) {
 		/* set initial values; */
 		
-		if(!options.difficulty) {
-			options.difficulty = DIFFICULTY["EASY"];
+		if(options.difficulty) {
+			size = DIFFICULTY[options.difficulty.toUpperCase()];
 		}
 		else {
-			options.difficulty = DIFFICULTY[options.difficulty.toUpperCase()];
+			size = DIFFICULTY["EASY"];
 		}
-		size = options.difficulty;
 
 		if(options.MOVE) {
 			MOVE = options.MOVE;
@@ -150,24 +149,35 @@ function Board() {
 		tileLength = 100;
 
 		translationMatrix = buildTranslationTable(size);
-		$tiles = create2dArray(size);
-		window.tiles = $tiles;
+		tiles = create2dArray(size);
+
 		// Add size*size-1 number of tiles.
 		for(var i = 0;i < size;i++) {
 			for(var j = 0;j < size;j++) {
-				var $tile = $("<div class='tile'>");
+				// var $tile = $("<div class='tile'>");
+				var tile = document.createElement("div");
+				tile.classList.add("tile");
 				if(currentState[i][j] != 0) {
-					$tile.append($("<p>").text(currentState[i][j]));
+					// $tile.append($("<p>").text(currentState[i][j]));
+					// $tile.on("click", attachClickEvent);
+					var p = document.createElement("p");
+					p.append(currentState[i][j]);
+					tile.appendChild(p);
+					tile.addEventListener("click", attachClickEvent, false);
 				}
 				else {
-					$tile.addClass("blank-entry");
+					// $tile.addClass("blank-entry");
+					tile.classList.add("blank-entry");
 				}
-				$tile.css({
-					"top": translationMatrix[i][j].first,
-					"left": translationMatrix[i][j].second,
-				});
-				$board.append($tile);
-				$tiles[i][j] = $tile;
+				// $tile.css({
+				// 	"top": translationMatrix[i][j].first,
+				// 	"left": translationMatrix[i][j].second,
+				// });
+				tile.style.top = translationMatrix[i][j].first;
+				tile.style.left = translationMatrix[i][j].second;
+				
+				$board.append(tile);
+				tiles[i][j] = tile;
 			}
 		}
 	}
@@ -186,16 +196,23 @@ function Board() {
 
 	function initEvents() {
 		window.addEventListener("keydown", checkMove, false);
-		$($tiles).each(function() {
-			$(this).each(function() {
-				$(this).on("click", attachClickEvent)
-			});
-		});
 	}
 
 	function attachClickEvent() {
 		var $el = $(this);
-		if($el.hasClass("blank-entry")) return;
+		var x , y;
+		console.log(this, tiles);
+
+		for(var i = 0;i < size;i++) {
+			if(tiles[i].includes(this)) {
+				x = i;
+				y = tiles[i].indexOf(this);
+				break;
+			}
+		}
+
+		/* Check if blankPosition is in the vicinity*/
+
 	}
 
 	/* 
@@ -286,31 +303,27 @@ function Board() {
 			console.log(oldpos.toString(), newpos.toString());
 		var x1 = oldpos.first, y1 = oldpos.second, x2 = newpos.first, y2 = newpos.second;
 		if(dev)
-			console.log($tiles[x2][y2]);
+			console.log(tiles[x2][y2]);
 		/* Tile on newpos has to moved to oldpos. */
-		$tiles[x2][y2].animate({
+		$(tiles[x2][y2]).animate({
 			"top": translationMatrix[x1][y1].first,
 			"left": translationMatrix[x1][y1].second,
 		});
 
 		/* Blank entry at oldpos is moved to newpos. */
-		$tiles[x1][y1].animate({
+		$(tiles[x1][y1]).animate({
 			"top": translationMatrix[x2][y2].first,
 			"left": translationMatrix[x2][y2].second,
 		});
 
 		/* Dirty code. */
-		var t = $tiles[x1][y1];
-		$tiles[x1][y1] = $tiles[x2][y2];
-		$tiles[x2][y2] = t;
+		var t = tiles[x1][y1];
+		tiles[x1][y1] = tiles[x2][y2];
+		tiles[x2][y2] = t;
 		$board.trigger("make-move", numberOfMoves);
 	}
 
-	/* Generates a random state(not so random right now) as start state
-		returns the generated state.
-		It also saves a path from the random state to the final state. */
-	function generateRandomState(FINAL, size, depth) {
-
+	function generateRandomState(FINAL, size) {
 		if(!FINAL) {
 			throw new Error("@param - FINAL is not defined");
 		}
@@ -318,80 +331,207 @@ function Board() {
 			throw new Error("@param - size is not defined.");
 		}
 
-		var START;
-		var NULLSTATE = create2dArray(size, -1);
+		/* randomizeTiles and swapTiles are used from sitepoint. */
+		function randomizeTiles(board, size) {
+			var iter = size*size-1;
+			while(iter) {
+				var tmp, x1, y1, x2, y2;
+				tmp = Math.floor(Math.random() * iter);
 
-		/* [left, up, right, down] */
-		var MOVES = 4;
-		var rowMove = [0, -1, 0, 1];
-		var colMove = [-1, 0, 1, 0];
+				x1 = iter%size;
+				y1 = Math.floor(iter / size);
 
-		/* Q - Queue has pairs< pairs<state, blank entry position>, dist/level> */
-		var Q = Queue();
- 
-		/* Stores the visited states to avoid cycles.*/
-		var visited = [];
+				x2 = tmp%size;
+				y2 = Math.floor(tmp / size);
 
-		/* Stores pairs<child, parent>*/
-		var parent = [];
+				swapTiles(board, x1, y1, x2, y2);
 
-		/* Starting position of blank entry*/
-		var pos = new Pair(size-1, size-1);
-
-		/* Initializing the queues, visited and parent maps. */
-		Q.push(Pair( Pair(FINAL, pos), 0));
-		visited.push(FINAL);
-		parent[FINAL] = NULLSTATE;
-
-		if(dev)
-			console.log("Generating random states.");
-
-		while( !Q.empty() ) {
-			var u = Q.top(); Q.pop();
-			var uState = u.first.first;
-			var upos = u.first.second;
-			var udist = u.second;
-
-			var randomness = Math.random();
-			if(u.second >= depth && randomness > 0.8){
-				START = u.first.first;
-				break;
+				iter--;
 			}
+		}
 
-			// if(dev) {
-			// 	console.log("uState");
-			// 	console.log(upos.first, upos.second);
-			// 	logState(uState, size);
-			// }
+		function swapTiles(board, i, j, k, l) {
+	    var temp = board[i][j];
+	    board[i][j] = board[k][l];
+	    board[k][l] = temp;
+	  }
 
-			for(var i = 0;i < MOVES;i++ ) {
+	  function countInversions(board, size, x, y ) {
+	  	var res = 0, val = board[x][y];
+	  	for(var i = x;i < size;i++) {
+	  		for(var j = 0;j < size;j++) {
+	  			if(board[i][j] == 0 || (i == x && j <= y) ) continue;
 
-				var vpos = Pair(upos.first + rowMove[i], upos.second + colMove[i]) ;
-				if( isValid(vpos, size) ) {
-					var vState = generateState(uState, upos, vpos, size);
-					// if(dev) {
-					// 	console.log("New State");
-					// 	console.log(isNotVisited(vState));
-					// 	console.log(vpos.first, vpos.second);
-					// 	logState(vState, size);
-					// }
-					if( isNotVisited(vState, size, visited)) {
-						var v = new Pair( new Pair(vState, vpos), udist + 1);
-						Q.push(v);
-						visited.push(vState);
-						parent[vState] = uState;
+	  			if(board[i][j] < val) {
+	  				res++;
+	  			}
+	  		}
+	  	}
+	  	return res;
+	  }
+
+	  function totalInversions(board, size) {
+	  	var res = 0;
+		  for(var i = 0;i < size;i++) {
+				for(var j = 0;j < size;j++) {
+					if(board[i][j] == 0) {
+						/* Blank tile. No need to count inversions for it.*/
+						continue;
 					}
+					res += countInversions(board, size, i, j);
 				}
 			}
-		}
+			return res;
+	  }
 
-		if(START) {
-			// Save the path from start to finish in solution.
-			saveSolution(START, parent, NULLSTATE);
-		}
+	  function getBlankFromBottom(board, size) {
+	  	for(var i = 0;i < size;i++) {
+	  		if(board[i].includes(0)) {
+	  			return (size - i);
+	  		}
+	  	}
+	  	throw new Error("No blank row found.");
+	  }
 
-		return START;
+	  function isSolvable(board, size, inversions, blankFromBottom) {
+	  	/*
+				1. If N is odd, then number of inversions should be even.
+				2. If N is even, then,
+					a.the blank is on an odd row counting from the bottom (last, third-last, fifth-last, etc.) and number of inversions is even.
+					b.the blank is on an even row counting from the bottom (second-last, fourth-last, etc.) and number of inversions is odd.
+	  	*/
+	  	if(size&1) { /* size is odd*/
+	  		/* return true if even number of inversions. */
+	  		return (inversions%2 == 0);
+	  	}
+	  	else { /*size is even.*/
+	  		if( blankFromBottom&1 ) { /*blank is on odd row. */
+	  			return (inversions%2 == 0);
+	  		}
+	  		else {
+	  			return (inversions%2 == 1);
+	  		}
+	  	}
+	  }
+
+		/* This has to be set and returned from the generateRandomState function.*/
+		var board = create2dCopy(FINAL, size); 
+		randomizeTiles(board, size);
+		
+		/*Just checking - 
+		board = [[7, 4, 3], [0, 5, 8], [6, 2, 1]];
+		size = 3;*/
+
+		/* Count the total number of inversions in the board configuration. */
+		var inversions = totalInversions(board, size);
+		/* Get the position of blank row from bottom. */
+		var blankFromBottom = getBlankFromBottom(board, size);
+
+		if(dev == 0) {
+			logState(board, size);
+			console.log(inversions, blankFromBottom);
+		}
+		/* Check if the generated configuration is valid or not. */
+		if( !isSolvable(board, size, inversions, blankFromBottom)) {
+			var blankPos = getBlankPosition(board, size);
+			if(blankPos.first <= 1 && blankPos.second == 0) {
+				swapTiles(board, size-2, size-1,size-1,size-1);
+			}
+			else {
+				swapTiles(board, 0, 0, 1, 0);
+			}
+		}
+		if(dev) {
+			logState(board, size);
+			console.log(totalInversions(board, size), getBlankFromBottom(board, size) );
+		}
+		return board;
 	}
+
+	/* Generates a random state(not so random right now) as start state
+		returns the generated state.
+		It also saves a path from the random state to the final state. */
+	// function generateRandomState(FINAL, size) {
+	// 	if(!FINAL) {
+	// 		throw new Error("@param - FINAL is not defined");
+	// 	}
+	// 	if(!size) {
+	// 		throw new Error("@param - size is not defined.");
+	// 	}
+
+	// 	var START;
+	// 	var NULLSTATE = create2dArray(size, -1);
+
+	// 	/* [left, up, right, down] */
+	// 	var MOVES = 4;
+	// 	var rowMove = [0, -1, 0, 1];
+	// 	var colMove = [-1, 0, 1, 0];
+
+	// 	/* Q - Queue has pairs< pairs<state, blank entry position>, dist/level> */
+	// 	var Q = Queue();
+ 
+	// 	/* Stores the visited states to avoid cycles.*/
+	// 	var visited = [];
+
+	// 	/* Stores pairs<child, parent>*/
+	// 	var parent = [];
+
+	// 	/* Starting position of blank entry*/
+	// 	var pos = new Pair(size-1, size-1);
+
+	// 	/* Initializing the queues, visited and parent maps. */
+	// 	Q.push(Pair( Pair(FINAL, pos), 0));
+	// 	visited.push(FINAL);
+	// 	parent[FINAL] = NULLSTATE;
+
+	// 	if(dev)
+	// 		console.log("Generating random states.");
+
+	// 	while( !Q.empty() ) {
+	// 		var u = Q.top(); Q.pop();
+	// 		var uState = u.first.first;
+	// 		var upos = u.first.second;
+	// 		var udist = u.second;
+
+	// 		if(u.second == FINAL){
+	// 			START = u.first.first;
+	// 			break;
+	// 		}
+
+	// 		// if(dev) {
+	// 		// 	console.log("uState");
+	// 		// 	console.log(upos.first, upos.second);
+	// 		// 	logState(uState, size);
+	// 		// }
+
+	// 		for(var i = 0;i < MOVES;i++ ) {
+
+	// 			var vpos = Pair(upos.first + rowMove[i], upos.second + colMove[i]) ;
+	// 			if( isValid(vpos, size) ) {
+	// 				var vState = generateState(uState, upos, vpos, size);
+	// 				// if(dev) {
+	// 				// 	console.log("New State");
+	// 				// 	console.log(isNotVisited(vState));
+	// 				// 	console.log(vpos.first, vpos.second);
+	// 				// 	logState(vState, size);
+	// 				// }
+	// 				if( isNotVisited(vState, size, visited)) {
+	// 					var v = new Pair( new Pair(vState, vpos), udist + 1);
+	// 					Q.push(v);
+	// 					visited.push(vState);
+	// 					parent[vState] = uState;
+	// 				}
+	// 			}
+	// 		}
+	// 	}
+
+	// 	if(START) {
+	// 		// Save the path from start to finish in solution.
+	// 		saveSolution(START, parent, NULLSTATE);
+	// 	}
+
+	// 	return START;
+	// }
 
 	/* 
 		Helper Methods for Board Object. ------------------------------------------------------------
@@ -641,7 +781,7 @@ function Board() {
 			console.log("Move");
 			logState(currentState, size);
 		}
-		// oldpos - position of blank entry in $tiles which needs to be updated.
+		// oldpos - position of blank entry in tiles which needs to be updated.
 		renderMove(oldpos, newpos);
 		if( isEqual(currentState, FINAL, size) ) {
 			// Won
@@ -678,5 +818,4 @@ function Board() {
 		time: getTimePlayed,
 		numberOfMoves: getNumberOfMoves
 	};
-
 };
